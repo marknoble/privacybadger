@@ -42,6 +42,11 @@ function Badger(from_qunit) {
   self.isFirstRun = false;
   self.isUpdate = false;
 
+  self.supportsBrowsingTopics = false;
+  detectTopicsApi(function (detected) {
+    self.supportsBrowsingTopics = !!detected;
+  });
+
   (function () {
     let manifestJson = chrome.runtime.getManifest();
     self.manifestVersion = manifestJson.manifest_version;
@@ -161,6 +166,38 @@ function Badger(from_qunit) {
         id = Math.max(...rules.map(rule => rule.id));
       }
       callback(id);
+    });
+  }
+
+  /**
+   * Checks for presence of Google's Topics API.
+   *
+   * @param {Function} cb the callback ({Boolean} topics_presence_check_result)
+   */
+  function detectTopicsApi(cb) {
+    if (globalThis.document) {
+      return setTimeout(function () {
+        cb(!!globalThis.document.browsingTopics);
+      }, 0);
+    }
+
+    if (!chrome.offscreen || !chrome.offscreen.createDocument) {
+      console.error("Unable to determine presence of document.browsingTopics");
+      return setTimeout(function () { cb(); }, 0);
+    }
+
+    chrome.offscreen.createDocument({
+      url: chrome.runtime.getURL("/skin/offscreen.html"),
+      reasons: ['DOM_SCRAPING'],
+      justification: "Testing presence of document.browsingTopics"
+    }, function () {
+      chrome.runtime.sendMessage({
+        target: 'offscreen',
+        type: "testBrowsingTopics"
+      }, function (response) {
+        chrome.offscreen.closeDocument();
+        cb(!!response.browsingTopicsInDocument);
+      });
     });
   }
 
@@ -1197,8 +1234,7 @@ Badger.prototype = {
   },
 
   isTopicsOverwriteEnabled: function () {
-    // TODO fix for MV3
-    if (globalThis.document && globalThis.document.browsingTopics) {
+    if (this.supportsBrowsingTopics) {
       return this.getSettings().getItem("disableTopics");
     }
     return false;

@@ -16,6 +16,7 @@
   "permissions": [
     "alarms",
     "declarativeNetRequest",
+    "offscreen",
     "privacy",
     "scripting",
     "storage",

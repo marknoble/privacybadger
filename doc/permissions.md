@@ -32,5 +32,9 @@ Privacy Badger needs access to the tabs API so that the extension can detect whi
 ## Alarms
 Privacy Badger uses the Alarms API to temporarily ensure the background process does not get terminated as idle when Privacy Badger needs it to perform some longer running asynchronous task. This workaround is used to help reopen the welcome page when it appears that the extension has been restarted because of interaction with the Private/Incognito browsing permission prompt, but not because of idle background process termination.
 
+## Offscreen
+
+Privacy Badger uses the Offscreen API on Manifest V3 Chrome to see if Google's Topics API is supported by the browser.
+
 ## Scripting
 Privacy Badger uses the Scripting API to send Global Privacy Control and Do Not Track signals to websites via JavaScript, as well as to deny "cookieblocked" domains JavaScript access to cookies and localStorage.
