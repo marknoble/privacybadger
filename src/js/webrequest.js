@@ -492,7 +492,6 @@ function onHeadersReceived(details) {
 
   // Google's Topics API: opt out all websites from topics generation
   if (details.type == 'main_frame') {
-    // TODO fix for DNR
     if (badger.isTopicsOverwriteEnabled()) {
       let responseHeaders = details.responseHeaders || [];
       responseHeaders.push({

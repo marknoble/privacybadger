@@ -44,7 +44,9 @@ function Badger(from_qunit) {
 
   self.supportsBrowsingTopics = false;
   detectTopicsApi(function (detected) {
-    self.supportsBrowsingTopics = !!detected;
+    if (detected) {
+      self.supportsBrowsingTopics = true;
+    }
   });
 
   (function () {
@@ -233,6 +235,10 @@ Badger.prototype = {
 
     if (!prefs.getItem("checkForDNTPolicy")) {
       dnrUtils.updateEnabledRulesets({ disableRulesetIds: ['dnt_policy_ruleset'] });
+    }
+
+    if (self.supportsBrowsingTopics && prefs.getItem("disableTopics")) {
+      dnrUtils.updateEnabledRulesets({ enableRulesetIds: ['google_topics_ruleset'] });
     }
   },
 
