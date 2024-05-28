@@ -8,6 +8,7 @@ The Privacy API lets extensions modify browser-wide privacy settings. Privacy Ba
 - [hyperlink auditing](https://www.bleepingcomputer.com/news/software/major-browsers-to-prevent-disabling-of-click-tracking-privacy-risk/), an [HTML feature](https://html.spec.whatwg.org/multipage/links.html#hyperlink-auditing) meant to optimize and normalize click tracking on the Web
 - [prefetching](https://developer.mozilla.org/en-US/docs/Web/HTTP/Link_prefetching_FAQ) (network predictions), as it presents a poor tradeoff between privacy and perceived browsing performance
 - suggestions for similar pages when a page can't be found, as this Chrome feature sends visited web addresses to Google
+- Google's Topics API
 
 ## Storage
 The storage API lets extensions store information that persists after the browser is closed. Privacy Badger uses it to save user settings and information it has learned about trackers.
@@ -31,10 +32,6 @@ Privacy Badger needs access to the tabs API so that the extension can detect whi
 
 ## Alarms
 Privacy Badger uses the Alarms API to temporarily ensure the background process does not get terminated as idle when Privacy Badger needs it to perform some longer running asynchronous task. This workaround is used to help reopen the welcome page when it appears that the extension has been restarted because of interaction with the Private/Incognito browsing permission prompt, but not because of idle background process termination.
-
-## Offscreen
-
-Privacy Badger uses the Offscreen API on Manifest V3 Chrome to see if Google's Topics API is supported by the browser.
 
 ## Scripting
 Privacy Badger uses the Scripting API to send Global Privacy Control and Do Not Track signals to websites via JavaScript, as well as to deny "cookieblocked" domains JavaScript access to cookies and localStorage.

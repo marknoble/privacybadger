@@ -222,27 +222,6 @@ function main() {
     fs.writeFileSync("src/data/dnr/dnt_policy.json",
       JSON.stringify(dntPolicyRules, null, 2), 'utf8');
     console.log(`Generated ${dntPolicyRules.length} EFF's DNT policy rules`);
-
-    // Google's Topics API: opt out all websites from topics generation
-    let topicsOptOutRule = {
-      id: 1,
-      priority: 1,
-      condition: {
-        resourceTypes: ['main_frame']
-      },
-      action: {
-        type: 'modifyHeaders',
-        responseHeaders: [{
-          header: "permissions-policy",
-          operation: 'set',
-          // https://github.com/GoogleChrome/developer.chrome.com/issues/2296#issuecomment-1075478309
-          value: "interest-cohort=()"
-        }]
-      }
-    };
-    fs.writeFileSync("src/data/dnr/topics.json",
-      JSON.stringify([topicsOptOutRule], null, 2), 'utf8');
-    console.log("Generated 1 Google's Topics API rule");
   });
 }
 

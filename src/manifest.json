@@ -16,7 +16,6 @@
   "permissions": [
     "alarms",
     "declarativeNetRequest",
-    "offscreen",
     "privacy",
     "scripting",
     "storage",
@@ -485,10 +484,6 @@
         "id": "dnt_policy_ruleset",
         "enabled": true,
         "path": "data/dnr/dnt_policy.json"
-      }, {
-        "id": "google_topics_ruleset",
-        "enabled": false,
-        "path": "data/dnr/topics.json"
       }
     ]
   },

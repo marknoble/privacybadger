@@ -43,11 +43,6 @@ function subscribeToStorageUpdates() {
       [enabled ? 'enableRulesetIds' : 'disableRulesetIds']: ['dnt_policy_ruleset']
     });
   });
-  settingsStore.subscribe("set:disableTopics", function (enabled) {
-    dnrUtils.updateEnabledRulesets({
-      [enabled ? 'enableRulesetIds' : 'disableRulesetIds']: ['google_topics_ruleset']
-    });
-  });
 
   // update dynamic rules
 

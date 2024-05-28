@@ -42,13 +42,6 @@ function Badger(from_qunit) {
   self.isFirstRun = false;
   self.isUpdate = false;
 
-  self.supportsBrowsingTopics = false;
-  detectTopicsApi(function (detected) {
-    if (detected) {
-      self.supportsBrowsingTopics = true;
-    }
-  });
-
   (function () {
     let manifestJson = chrome.runtime.getManifest();
     self.manifestVersion = manifestJson.manifest_version;
@@ -171,38 +164,6 @@ function Badger(from_qunit) {
     });
   }
 
-  /**
-   * Checks for presence of Google's Topics API.
-   *
-   * @param {Function} cb the callback ({Boolean} topics_presence_check_result)
-   */
-  function detectTopicsApi(cb) {
-    if (globalThis.document) {
-      return setTimeout(function () {
-        cb(!!globalThis.document.browsingTopics);
-      }, 0);
-    }
-
-    if (!chrome.offscreen || !chrome.offscreen.createDocument) {
-      console.error("Unable to determine presence of document.browsingTopics");
-      return setTimeout(function () { cb(); }, 0);
-    }
-
-    chrome.offscreen.createDocument({
-      url: chrome.runtime.getURL("/skin/offscreen.html"),
-      reasons: ['DOM_SCRAPING'],
-      justification: "Testing presence of document.browsingTopics"
-    }, function () {
-      chrome.runtime.sendMessage({
-        target: 'offscreen',
-        type: "testBrowsingTopics"
-      }, function (response) {
-        chrome.offscreen.closeDocument();
-        cb(!!response.browsingTopicsInDocument);
-      });
-    });
-  }
-
 } /* end of Badger constructor */
 
 Badger.prototype = {
@@ -235,10 +196,6 @@ Badger.prototype = {
 
     if (!prefs.getItem("checkForDNTPolicy")) {
       dnrUtils.updateEnabledRulesets({ disableRulesetIds: ['dnt_policy_ruleset'] });
-    }
-
-    if (self.supportsBrowsingTopics && prefs.getItem("disableTopics")) {
-      dnrUtils.updateEnabledRulesets({ enableRulesetIds: ['google_topics_ruleset'] });
     }
   },
 
@@ -315,8 +272,6 @@ Badger.prototype = {
           }, () => {
             if (chrome.runtime.lastError) {
               console.error("Failed clearing override:", chrome.runtime.lastError);
-            } else {
-              console.log("Cleared override", name);
             }
           });
 
@@ -362,6 +317,12 @@ Badger.prototype = {
         "hyperlinkAuditingEnabled",
         chrome.privacy.websites.hyperlinkAuditingEnabled,
         (self.getSettings().getItem("disableHyperlinkAuditing") ? false : null)
+      );
+
+      _set_override(
+        "topicsEnabled",
+        chrome.privacy.websites.topicsEnabled,
+        (self.getSettings().getItem("disableTopics") ? false : null)
       );
     }
   },
@@ -1237,13 +1198,6 @@ Badger.prototype = {
 
   isCheckingDNTPolicyEnabled: function() {
     return this.getSettings().getItem("checkForDNTPolicy");
-  },
-
-  isTopicsOverwriteEnabled: function () {
-    if (this.supportsBrowsingTopics) {
-      return this.getSettings().getItem("disableTopics");
-    }
-    return false;
   },
 
   /**
