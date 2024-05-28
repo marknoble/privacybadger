@@ -64,6 +64,7 @@ function onBeforeRequest(details) {
   // Block ping requests sent by navigator.sendBeacon (see, #587)
   // tabId for pings are always -1 due to Chrome bugs #522124 and #522129
   // Once these bugs are fixed, PB will treat pings as any other request
+  // TODO update for DNR?
   if (type == "ping" && tab_id < 0) {
     return {cancel: true};
   }
@@ -225,6 +226,7 @@ function onBeforeRequest(details) {
     }, 0);
   }
 
+  // TODO no need for DNR, should be able to remove this content script too
   if (type == 'sub_frame' && from_current_tab) {
     setTimeout(function () {
       hideBlockedFrame(tab_id, details.parentFrameId, url, request_host);
@@ -451,6 +453,7 @@ function onBeforeSendHeaders(details) {
   if (action == constants.COOKIEBLOCK || action == constants.USER_COOKIEBLOCK) {
     let newHeaders;
 
+    // TODO DNR: reduce referrer header to origin
     // GET requests: remove cookie headers, reduce referrer header to origin
     if (details.method == "GET") {
       newHeaders = details.requestHeaders.filter(header => {
@@ -503,6 +506,7 @@ function onHeadersReceived(details) {
 
   // Google's Topics API: opt out all websites from topics generation
   if (details.type == 'main_frame') {
+    // TODO fix for DNR
     if (badger.isTopicsOverwriteEnabled()) {
       let responseHeaders = details.responseHeaders || [];
       responseHeaders.push({
@@ -1450,9 +1454,15 @@ function dispatcher(request, sender, sendResponse) {
   }
 
   case "resetData": {
+    let actionMap = badger.storage.getStore('action_map');
+
     badger.storage.clearTrackerData();
 
+    let wildcardSubs = actionMap.unsubscribe("set:*");
     badger.loadSeedData().then(function () {
+      for (let callback of wildcardSubs) {
+        actionMap.subscribe("set:*", callback);
+      }
       globalThis.DATA_LOAD_IN_PROGRESS = true;
       badger.blockWidgetDomains();
       badger.blockPanopticlickDomains();
@@ -1468,9 +1478,9 @@ function dispatcher(request, sender, sendResponse) {
   }
 
   case "removeAllData": {
-    badger.storage.clearTrackerData();
-    sendResponse();
-    break;
+    badger.storage.clearTrackerData(sendResponse);
+    // indicate this is an async response to chrome.runtime.onMessage
+    return true;
   }
 
   // used by tests
@@ -1585,25 +1595,74 @@ function dispatcher(request, sender, sendResponse) {
   }
 
   case "reenableOnSiteFromPopup": {
+    let _checkRules = function () {
+      chrome.declarativeNetRequest.getDynamicRules(rules => {
+        let found = rules.find(r =>
+          r.action.type == 'allowAllRequests' &&
+            r.priority == constants.DNR_SITE_ALLOW_ALL &&
+            r.condition.requestDomains.includes(request.tabHost));
+        if (!found) {
+          badger.updateIcon(request.tabId, request.tabUrl);
+          return sendResponse();
+        }
+        setTimeout(_checkRules, 50);
+      });
+    };
+
     badger.reenableOnSite(request.tabHost);
-    badger.updateIcon(request.tabId, request.tabUrl);
-    sendResponse();
-    break;
+
+    // poll for DNR to get updated
+    _checkRules();
+
+    return true; // async chrome.runtime.onMessage response
   }
 
   case "disableOnSiteFromPopup": {
+    let _checkRules = function () {
+      chrome.declarativeNetRequest.getDynamicRules(rules => {
+        let found = rules.find(r =>
+          r.action.type == 'allowAllRequests' &&
+            r.priority == constants.DNR_SITE_ALLOW_ALL &&
+            r.condition.requestDomains.includes(request.tabHost));
+        if (found) {
+          badger.updateIcon(request.tabId, request.tabUrl);
+          return sendResponse();
+        }
+        setTimeout(_checkRules, 50);
+      });
+    };
+
     badger.disableOnSite(request.tabHost);
-    badger.updateIcon(request.tabId, request.tabUrl);
-    sendResponse();
-    break;
+
+    // poll for DNR to get updated
+    _checkRules();
+
+    return true; // async chrome.runtime.onMessage response
   }
 
   case "revertDomainControl": {
-    badger.storage.revertUserAction(request.origin);
-    sendResponse({
-      origins: badger.storage.getTrackingDomains()
-    });
-    break;
+    let domain = request.origin;
+
+    let _checkRules = function () {
+      chrome.declarativeNetRequest.getDynamicRules(rules => {
+        let found = rules.some(r =>
+          constants.DNR_USER_ACTIONS.has(r.priority) &&
+            r.condition.requestDomains[0] == domain);
+        if (!found) {
+          return sendResponse({
+            origins: badger.storage.getTrackingDomains()
+          });
+        }
+        setTimeout(_checkRules, 50);
+      });
+    };
+
+    badger.storage.revertUserAction(domain);
+
+    // poll for DNR to get updated
+    _checkRules();
+
+    return true; // async chrome.runtime.onMessage response
   }
 
   case "downloadCloud": {
