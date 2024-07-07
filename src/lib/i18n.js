@@ -20,11 +20,11 @@
 
 /* eslint-env browser, jquery */
 
-const LOCALE = chrome.i18n.getMessage('@@ui_locale'),
+const LOCALE = chrome.i18n.getMessage('@@ui_locale').replace('-', '_'),
   ON_POPUP = (document.location.pathname == "/skin/popup.html");
 
 function localizeFaqLink() {
-  const LOCALIZED_HOMEPAGE_LOCALES = ['es', 'fr', 'zh_CN'];
+  const LOCALIZED_HOMEPAGE_LOCALES = ['de', 'es', 'fr', 'zh_CN'];
   if (ON_POPUP && LOCALIZED_HOMEPAGE_LOCALES.includes(LOCALE)) {
     // update FAQ link to point to localized version
     $('#help').prop('href', `https://privacybadger.org/${LOCALE.replace('_', '-').toLowerCase()}/#faq`);
@@ -77,6 +77,17 @@ function setTextDirection() {
     // fix floats
     ['.btn-silo', '.btn-silo div', '#allowlist-form > div > div > div', '#widget-site-exceptions-select-div', '#widget-site-exceptions-remove-button'].forEach((selector) => {
       toggle_css_value(selector, "float", "left", "right");
+    });
+  } else if (document.location.pathname == "/skin/firstRun.html") {
+    $('#pin-nudge').css({
+      right: 'unset',
+      left: '15px'
+    });
+    $('#pin-image').css("transform", "scaleX(-1)");
+    $('#dismiss-nudge').css({
+      float: 'left',
+      right: 'unset',
+      left: '-5px'
     });
   }
 }

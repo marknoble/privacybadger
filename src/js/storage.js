@@ -23,6 +23,53 @@ import { log } from "./bootstrap.js";
 import constants from "./constants.js";
 import utils from "./utils.js";
 
+function getLocalStorage(keys, callback) {
+  function _cb(store) {
+    if (chrome.runtime.lastError) {
+      console.error("Error reading from chrome.storage.local:",
+        chrome.runtime.lastError.message);
+    }
+    callback(store);
+  }
+
+  try {
+    chrome.storage.local.get(keys, _cb);
+  } catch (ex) {
+    console.error("Error reading from chrome.storage.local:", ex);
+    callback(null);
+  }
+}
+
+let readFromStorageWithRetrying = (function () {
+  const MAX_TRIES = 5,
+    WAIT_TIME = 200;
+
+  let num_tries = 0;
+
+  /**
+   * @param {Array} the list of keys to get from extension storage
+   * @param {Function} callback
+   */
+  function _tryReading(keys, callback) {
+    getLocalStorage(keys, function (store) {
+      if (store) {
+        return callback(store);
+      }
+
+      num_tries++;
+      if (num_tries >= MAX_TRIES) {
+        return callback(null);
+      }
+
+      setTimeout(function () {
+        _tryReading(keys, callback);
+      }, WAIT_TIME);
+    });
+  }
+
+  return _tryReading;
+}());
+
 function getManagedStorage(callback) {
   chrome.storage.managed.get(null, function (res) {
     if (chrome.runtime.lastError) {
@@ -83,13 +130,8 @@ function BadgerPen(callback) {
   }
 
   // initialize from extension local storage
-  chrome.storage.local.get(self.KEYS, function (store) {
-    let storage_err;
-    if (chrome.runtime.lastError) {
-      storage_err = chrome.runtime.lastError.message;
-    }
-
-    self.KEYS.forEach(key => {
+  readFromStorageWithRetrying(self.KEYS, function (store) {
+    for (let key of self.KEYS) {
       if (store && utils.hasOwn(store, key)) {
         self[key] = new BadgerStorage(key, store[key]);
       } else {
@@ -97,14 +139,12 @@ function BadgerPen(callback) {
         self[key] = storageObj;
         _syncStorage(storageObj);
       }
-    });
+    }
 
-    if (!store || storage_err) {
-      console.error("Error reading from extension storage:", storage_err);
-      if (!store) {
-        self.settings_map.setItem("showIntroPage", false);
-        self.settings_map.setItem("seenComic", true);
-      }
+    if (!store) {
+      console.error("Failed to read from extension storage");
+      self.settings_map.setItem("showIntroPage", false);
+      self.settings_map.setItem("seenComic", true);
     }
 
     badger.initSettings();
@@ -117,36 +157,34 @@ function BadgerPen(callback) {
     }
 
     // see if we have any enterprise/admin/group policy overrides
-    getManagedStorage(function (managedStore) {
-      if (utils.isObject(managedStore)) {
-        // there are values in managed storage
-        if (Object.keys(managedStore).length) {
-          ingestManagedStorage(managedStore);
-          setTimeout(function () {
+    // but do it async; don't wait on it to finish initializing
+    setTimeout(function () {
+      getManagedStorage(function (managedStore) {
+        if (utils.isObject(managedStore)) {
+          // there are values in managed storage
+          if (Object.keys(managedStore).length) {
+            ingestManagedStorage(managedStore);
             badger.initWelcomePage();
-          }, 0);
-          return callback();
+            return;
+          }
+
+          // managed storage is an empty object and we just got installed
+          if (badger.isFirstRun) {
+            // poll for managed storage to work around Chromium bug
+            pollForManagedStorage(0, function () {
+              badger.initWelcomePage();
+            });
+            return;
+          }
         }
 
-        // managed storage is an empty object and we just got installed
-        if (badger.isFirstRun) {
-          // poll for managed storage to work around Chromium bug
-          pollForManagedStorage(0, function () {
-            badger.initWelcomePage();
-          });
-          return callback();
-        }
-      }
-
-      // managed storage is not an object,
-      // or it is an empty object but this isn't the first run
-
-      setTimeout(function () {
+        // managed storage is not an object,
+        // or it is an empty object but this isn't the first run
         badger.initWelcomePage();
-      }, 0);
+      });
+    }, 0);
 
-      callback();
-    });
+    callback();
   });
 }
 

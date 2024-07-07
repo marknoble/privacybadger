@@ -2568,6 +2568,7 @@ let multiDomainFirstPartiesArray = [
     "kaspersky.gr",
     "kaspersky.it",
     "kaspersky.nl",
+    "kaspersky.rs",
     "kaspersky.ru",
 
     "kaspersky-labs.com",
@@ -3080,6 +3081,7 @@ let multiDomainFirstPartiesArray = [
     "s-microsoft.com",
     "s-msn.com",
     "staffhub.ms",
+    "status.microsoft",
     "svc.ms",
     "sway-cdn.com",
     "sway.com",
@@ -3113,6 +3115,7 @@ let multiDomainFirstPartiesArray = [
     "githubassets.com",
     "github.dev",
 
+    "avatars.githubusercontent.com",
     "avatars0.githubusercontent.com",
     "avatars1.githubusercontent.com",
     "avatars2.githubusercontent.com",

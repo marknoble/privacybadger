@@ -2,9 +2,6 @@
  * This file is part of Privacy Badger <https://privacybadger.org/>
  * Copyright (C) 2014 Electronic Frontier Foundation
  *
- * Derived from Adblock Plus
- * Copyright (C) 2006-2013 Eyeo GmbH
- *
  * Privacy Badger is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
  * published by the Free Software Foundation.
@@ -74,6 +71,8 @@ function Badger(from_qunit) {
    * once Badger storage is ready.
    */
   async function onStorageReady() {
+    log("Storage is ready");
+
     self.heuristicBlocking = new HeuristicBlocking.HeuristicBlocker(self.storage);
 
     self.setPrivacyOverrides();
@@ -120,7 +119,7 @@ function Badger(from_qunit) {
       window.DATA_LOAD_IN_PROGRESS = false;
     }
 
-    log("Privacy Badger initialization complete");
+    log("Initialization complete");
     console.log("Privacy Badger is ready to rock!");
     self.INITIALIZED = true;
 
@@ -194,8 +193,6 @@ Badger.prototype = {
           }, () => {
             if (chrome.runtime.lastError) {
               console.error("Failed clearing override:", chrome.runtime.lastError);
-            } else {
-              console.log("Cleared override", name);
             }
           });
 
@@ -241,6 +238,12 @@ Badger.prototype = {
         "hyperlinkAuditingEnabled",
         chrome.privacy.websites.hyperlinkAuditingEnabled,
         (self.getSettings().getItem("disableHyperlinkAuditing") ? false : null)
+      );
+
+      _set_override(
+        "topicsEnabled",
+        chrome.privacy.websites.topicsEnabled,
+        (self.getSettings().getItem("disableTopics") ? false : null)
       );
     }
   },
@@ -1107,13 +1110,6 @@ Badger.prototype = {
 
   isCheckingDNTPolicyEnabled: function() {
     return this.getSettings().getItem("checkForDNTPolicy");
-  },
-
-  isTopicsOverwriteEnabled: function () {
-    if (document.browsingTopics) {
-      return this.getSettings().getItem("disableTopics");
-    }
-    return false;
   },
 
   /**
